@@ -243,6 +243,28 @@
       font-weight: 500;
     }
 
+    /* ── Topic filter ───────────────────────────────────── */
+    #topics-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+    .topic-btn {
+      padding: 0.3rem 0.7rem;
+      border-radius: 999px;
+      border: 2px solid #e5e7eb;
+      font-size: 0.75rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: white;
+      color: #4b5563;
+      white-space: nowrap;
+    }
+    .topic-btn.active { background: black; color: white; border-color: black; }
+    .topic-btn:not(.active):hover { border-color: black; }
+
     @media (max-width: 767px) {
       #app { justify-content: flex-start; padding-top: 5rem; overflow-y: auto; }
       #mobile-sentences { display: flex; }
@@ -302,6 +324,11 @@
         <button class="lang-btn" id="lang-uz" onclick="setPrimary('uz')">UZ</button>
         <button class="lang-btn" id="lang-kr" onclick="setPrimary('kr')">KR</button>
       </div>
+    </div>
+
+    <div>
+      <span class="panel-label">Topic Filter</span>
+      <div id="topics-list"><span style="font-size:0.78rem;color:#aaa;">Loading topics...</span></div>
     </div>
 
     <div>
@@ -372,7 +399,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ── Word fetching ─────────────────────────────────────────────────────────────
 async function fetchWord() {
-  const url = currentId ? `/api/word/random?exclude_id=${currentId}` : '/api/word/random';
+  const params = new URLSearchParams();
+  if (currentId) params.set('exclude_id', currentId);
+  const topic = localStorage.getItem('selectedTopic') || '';
+  if (topic) params.set('topic', topic);
+  const url = '/api/word/random' + (params.toString() ? '?' + params.toString() : '');
   try {
     const res  = await fetch(url);
     const data = await res.json();
@@ -422,7 +453,10 @@ function renderWord(w) {
 
   document.getElementById('sub-a').textContent  = subA;
   document.getElementById('sub-b').textContent  = subB;
-  document.getElementById('word-def').textContent = w.def_ru || '';
+
+  const defKey = lang === 'uz' ? 'def_uz' : lang === 'kr' ? 'def_kr' : 'def_en';
+  const def = w[defKey] || w['def_en'] || w['def_ru'] || '';
+  document.getElementById('word-def').textContent = def;
 
   const transKey = lang === 'uz' ? 'trans_uz' : lang === 'kr' ? 'trans_kr' : 'trans_en';
   // fallback to EN transcription if primary lang has no transcription yet
@@ -493,10 +527,48 @@ function updateLangButtons(active) {
   });
 }
 
+// ── Topics ────────────────────────────────────────────────────────────────────
+async function loadTopics() {
+  const container = document.getElementById('topics-list');
+  try {
+    const topics = await (await fetch('/api/topics')).json();
+    const active = localStorage.getItem('selectedTopic') || '';
+    container.innerHTML = '';
+
+    const allBtn = document.createElement('button');
+    allBtn.className = 'topic-btn' + (!active ? ' active' : '');
+    allBtn.textContent = 'All';
+    allBtn.onclick = () => setTopic('');
+    container.appendChild(allBtn);
+
+    topics.forEach(({ name, count }) => {
+      const btn = document.createElement('button');
+      btn.className = 'topic-btn' + (name === active ? ' active' : '');
+      btn.textContent = `${name} ${count}`;
+      btn.onclick = () => setTopic(name);
+      container.appendChild(btn);
+    });
+  } catch (e) {
+    container.innerHTML = '<span style="font-size:0.78rem;color:#aaa;">Failed to load topics</span>';
+  }
+}
+
+function setTopic(name) {
+  localStorage.setItem('selectedTopic', name);
+  document.querySelectorAll('.topic-btn').forEach(b => {
+    b.classList.toggle('active',
+      name === '' ? b.textContent === 'All' : b.textContent.startsWith(name + ' ') || b.textContent === name
+    );
+  });
+  currentId = null;
+  fetchWord();
+}
+
 // Settings panel toggle
 document.getElementById('settings-btn').addEventListener('click', () => {
   document.getElementById('settings-panel').classList.add('open');
   loadStats();
+  loadTopics();
 });
 document.getElementById('close-settings').addEventListener('click', () => {
   document.getElementById('settings-panel').classList.remove('open');

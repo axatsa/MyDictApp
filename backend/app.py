@@ -3,7 +3,7 @@ from fastapi import FastAPI, BackgroundTasks, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from database import init_db, get_random_word, get_word_count, insert_words
+from database import init_db, get_random_word, get_word_count, insert_words, get_topics
 from ai_engine import generate_batch
 
 generation_status: dict = {"running": False, "last": None, "error": None}
@@ -30,12 +30,12 @@ class GenerateRequest(BaseModel):
 
 
 @app.get("/api/word/random")
-def random_word(exclude_id: int = Query(default=None)):
-    word = get_random_word(exclude_id)
+def random_word(exclude_id: int = Query(default=None), topic: str = Query(default=None)):
+    word = get_random_word(exclude_id, topic)
     if not word:
         return {
             "error": "no_words",
-            "message": "Database is empty. Open Settings → Update Word Base to generate words.",
+            "message": "No words found. Try a different topic or generate more words.",
         }
     return word
 
@@ -43,6 +43,11 @@ def random_word(exclude_id: int = Query(default=None)):
 @app.get("/api/stats")
 def stats():
     return {"word_count": get_word_count()}
+
+
+@app.get("/api/topics")
+def topics():
+    return get_topics()
 
 
 @app.get("/api/generate/status")
