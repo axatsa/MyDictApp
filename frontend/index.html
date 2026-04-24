@@ -58,8 +58,18 @@
       color: rgba(0,0,0,0.78);
       letter-spacing: -0.03em;
       line-height: 1;
-      margin: 0 0 1rem;
+      margin: 0 0 0.35rem;
       transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+
+    #word-transcription {
+      font-size: clamp(0.95rem, 2.5vw, 1.3rem);
+      font-weight: 400;
+      color: rgba(0,0,0,0.38);
+      letter-spacing: 0.02em;
+      margin: 0 0 0.85rem;
+      font-style: italic;
+      min-height: 1.4em;
     }
 
     #word-subs {
@@ -260,6 +270,7 @@
   <!-- Center word area -->
   <div id="word-area">
     <div id="word-main">...</div>
+    <div id="word-transcription"></div>
     <div id="word-subs">
       <span class="sub-word" id="sub-a"></span>
       <span class="sub-sep">·</span>
@@ -315,7 +326,7 @@
   <div id="support-card">
     <div style="font-size:1.5rem;font-weight:800;margin-bottom:0.5rem;">Support MyDict ♥</div>
     <p style="color:#666;font-size:0.85rem;margin-bottom:1.25rem;">
-      Support the project to expand the word database and add new languages.
+      Support the project to expand the word database and maybe i will add new languages.
     </p>
     <div style="background:#f8f8f8;border-radius:0.75rem;padding:1rem;text-align:left;margin-bottom:1.25rem;">
       <div style="font-size:0.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#999;margin-bottom:0.3rem;">Visa</div>
@@ -410,6 +421,9 @@ function renderWord(w) {
   document.getElementById('sub-a').textContent  = subA;
   document.getElementById('sub-b').textContent  = subB;
   document.getElementById('word-def').textContent = w.def_ru || '';
+
+  const transKey = lang === 'uz' ? 'trans_uz' : lang === 'kr' ? 'trans_kr' : 'trans_en';
+  document.getElementById('word-transcription').textContent = w[transKey] || '';
 
   // Background color
   const color = BG_COLORS[Math.floor(Math.random() * BG_COLORS.length)];

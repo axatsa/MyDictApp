@@ -30,7 +30,7 @@ def init_db():
     """)
     # Migrate existing DB: add new columns if missing
     existing = {row[1] for row in conn.execute("PRAGMA table_info(dictionary)")}
-    for col in ("examples_uz", "examples_kr"):
+    for col in ("examples_uz", "examples_kr", "trans_en", "trans_uz", "trans_kr"):
         if col not in existing:
             conn.execute(f"ALTER TABLE dictionary ADD COLUMN {col} TEXT")
     conn.commit()
@@ -74,8 +74,9 @@ def insert_words(words: list) -> int:
         try:
             conn.execute(
                 """INSERT OR IGNORE INTO dictionary
-                   (word_en, word_uz, word_kr, def_ru, examples, examples_uz, examples_kr, topic)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                   (word_en, word_uz, word_kr, def_ru, examples, examples_uz, examples_kr,
+                    trans_en, trans_uz, trans_kr, topic)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     w.get("en", "").strip(),
                     w.get("uz", "").strip(),
@@ -84,6 +85,9 @@ def insert_words(words: list) -> int:
                     json.dumps(w.get("ex", []), ensure_ascii=False),
                     json.dumps(w.get("ex_uz", []), ensure_ascii=False),
                     json.dumps(w.get("ex_kr", []), ensure_ascii=False),
+                    w.get("trans_en", "").strip(),
+                    w.get("trans_uz", "").strip(),
+                    w.get("trans_kr", "").strip(),
                     w.get("topic", "general").strip(),
                 )
             )
