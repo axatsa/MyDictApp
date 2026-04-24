@@ -23,11 +23,14 @@ async def generate_batch(context: str = "") -> list:
         f'  "kr": Korean translation in Hangul\n'
         f'  "ru_def": Short definition in Russian (1 sentence, max 15 words)\n'
         f'  "ex": array of exactly 5 example sentences in English\n'
+        f'  "ex_uz": array of exactly 5 example sentences in Uzbek\n'
+        f'  "ex_kr": array of exactly 5 example sentences in Korean (Hangul)\n'
         f'  "topic": one of: IT, Daily, Business, Science, Art, Travel\n'
         f"Rules:\n"
         f"  - 80% of words must relate to the user context\n"
         f"  - 20% must be general high-frequency words\n"
         f"  - No duplicate words\n"
+        f"  - ex_uz and ex_kr must be natural translations of the English examples\n"
         f"Return ONLY a valid JSON array. No markdown, no explanation, no code fences."
     )
 
@@ -35,7 +38,7 @@ async def generate_batch(context: str = "") -> list:
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
             "temperature": 0.7,
-            "maxOutputTokens": 8192,
+            "maxOutputTokens": 16384,
             "responseMimeType": "application/json",
         },
     }
@@ -51,11 +54,9 @@ async def generate_batch(context: str = "") -> list:
 
     raw = body["candidates"][0]["content"]["parts"][0]["text"]
 
-    # Strip markdown code fences if present
     raw = re.sub(r"^```(?:json)?\s*", "", raw.strip())
     raw = re.sub(r"\s*```$", "", raw.strip())
 
-    # Extract JSON array
     match = re.search(r"\[[\s\S]*\]", raw)
     if match:
         return json.loads(match.group())

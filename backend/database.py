@@ -22,10 +22,17 @@ def init_db():
             word_kr TEXT,
             def_ru TEXT,
             examples TEXT,
+            examples_uz TEXT,
+            examples_kr TEXT,
             topic TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    # Migrate existing DB: add new columns if missing
+    existing = {row[1] for row in conn.execute("PRAGMA table_info(dictionary)")}
+    for col in ("examples_uz", "examples_kr"):
+        if col not in existing:
+            conn.execute(f"ALTER TABLE dictionary ADD COLUMN {col} TEXT")
     conn.commit()
     conn.close()
 
@@ -45,10 +52,11 @@ def get_random_word(exclude_id: int = None):
     if not row:
         return None
     d = dict(row)
-    try:
-        d["examples"] = json.loads(d["examples"]) if d["examples"] else []
-    except (json.JSONDecodeError, TypeError):
-        d["examples"] = []
+    for field in ("examples", "examples_uz", "examples_kr"):
+        try:
+            d[field] = json.loads(d[field]) if d[field] else []
+        except (json.JSONDecodeError, TypeError):
+            d[field] = []
     return d
 
 
@@ -66,14 +74,16 @@ def insert_words(words: list) -> int:
         try:
             conn.execute(
                 """INSERT OR IGNORE INTO dictionary
-                   (word_en, word_uz, word_kr, def_ru, examples, topic)
-                   VALUES (?, ?, ?, ?, ?, ?)""",
+                   (word_en, word_uz, word_kr, def_ru, examples, examples_uz, examples_kr, topic)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     w.get("en", "").strip(),
                     w.get("uz", "").strip(),
                     w.get("kr", "").strip(),
                     w.get("ru_def", "").strip(),
                     json.dumps(w.get("ex", []), ensure_ascii=False),
+                    json.dumps(w.get("ex_uz", []), ensure_ascii=False),
+                    json.dumps(w.get("ex_kr", []), ensure_ascii=False),
                     w.get("topic", "general").strip(),
                 )
             )
