@@ -56,12 +56,11 @@ docker rm -f mydict_backend mydict_frontend 2>/dev/null || true
 echo '🔨 Пересборка и запуск контейнеров...'
 $DOCKER_CMD -f docker-compose.prod.yml up -d --build --force-recreate
 
-# 8. Ожидание готовности backend
+# 8. Ожидание готовности backend (проверяем внутри контейнера)
 echo '⏳ Ожидание готовности backend...'
-MAX_WAIT=60
+MAX_WAIT=30
 WAITED=0
-until curl -s http://localhost:8000/api/stats >/dev/null 2>&1 || \
-      docker exec mydict_backend curl -s http://localhost:8000/api/stats >/dev/null 2>&1; do
+until docker exec mydict_backend curl -s http://localhost:8000/api/stats >/dev/null 2>&1; do
     if [ $WAITED -ge $MAX_WAIT ]; then
         echo "⚠️  Backend не ответил за ${MAX_WAIT}с, но продолжаем..."
         break
@@ -70,6 +69,7 @@ until curl -s http://localhost:8000/api/stats >/dev/null 2>&1 || \
     WAITED=$((WAITED + 2))
     echo "   ...ждём backend (${WAITED}с)"
 done
+[ $WAITED -lt $MAX_WAIT ] && echo "✅ Backend готов (${WAITED}с)"
 
 # 9. Сидируем начальные слова (если база пустая)
 echo '🌱 Проверяем базу данных...'
