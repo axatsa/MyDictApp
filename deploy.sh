@@ -56,11 +56,11 @@ docker rm -f mydict_backend mydict_frontend 2>/dev/null || true
 echo '🔨 Пересборка и запуск контейнеров...'
 $DOCKER_CMD -f docker-compose.prod.yml up -d --build --force-recreate
 
-# 8. Ожидание готовности backend (проверяем внутри контейнера)
+# 8. Ожидание готовности backend (через docker logs — curl отсутствует в slim-образе)
 echo '⏳ Ожидание готовности backend...'
 MAX_WAIT=30
 WAITED=0
-until docker exec mydict_backend curl -s http://localhost:8000/api/stats >/dev/null 2>&1; do
+until docker logs mydict_backend 2>&1 | grep -q "Application startup complete"; do
     if [ $WAITED -ge $MAX_WAIT ]; then
         echo "⚠️  Backend не ответил за ${MAX_WAIT}с, но продолжаем..."
         break

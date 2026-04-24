@@ -12,7 +12,7 @@ Live at: **mydict.classplay.uz**
 | Backend  | Python 3.11 + FastAPI |
 | Frontend | HTML5 + Tailwind CSS + Vanilla JS |
 | Database | SQLite (shared global, via Docker volume) |
-| AI       | Gemma 3 4B via Ollama (runs on host) |
+| AI       | Google Gemini API (REST) |
 | Proxy    | Traefik (uses existing `web` network) |
 
 ---
@@ -73,6 +73,30 @@ chmod +x deploy.sh
 ```
 
 That's it. The app will be live at `https://mydict.classplay.uz`.
+
+---
+
+## Gemini Models (актуально на апрель 2026)
+
+Список получен скриптом `check_models.py`. Меняй `GEMINI_MODEL` в `.env`.
+
+| Модель | Output tokens | Рекомендация |
+|--------|--------------|--------------|
+| `gemini-2.5-flash-lite` | 65 536 | ✅ **Лучший выбор** — дёшево, быстро, большой output |
+| `gemini-2.5-flash` | 65 536 | Чуть умнее, немного дороже |
+| `gemini-2.0-flash-lite` | 8 192 | Мало токенов — не хватит на 100 слов с примерами |
+| `gemini-2.0-flash` | 8 192 | Частые 429 на free-tier |
+| `gemini-2.5-pro` | 65 536 | Умный, но дорогой — нецелесообразно |
+| `gemini-3-flash-preview` | 65 536 | Preview — нестабильный |
+| `gemma-3-27b-it` | 8 192 | Open-source, медленный |
+
+> **Правило**: выбирай flash-lite с output ≥ 32 768 токенов.  
+> Если видишь `429 Too Many Requests` — модель перегружена, смени на другую flash-lite.
+
+Проверить актуальные модели:
+```bash
+python check_models.py $GEMINI_API_KEY
+```
 
 ---
 
