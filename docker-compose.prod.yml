@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: mydict_backend
+    restart: always
+    environment:
+      DB_PATH: /data/dict.db
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.0-flash}
+    volumes:
+      - mydict_data:/data
+    networks:
+      - app_network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        CARD_NUMBER: ${CARD_NUMBER:-8600 0000 0000 0000}
+        CARD_HOLDER: ${CARD_HOLDER:-Support MyDict}
+    container_name: mydict_frontend
+    restart: always
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mydict.rule=Host(`mydict.classplay.uz`)"
+      - "traefik.http.routers.mydict.entrypoints=websecure"
+      - "traefik.http.routers.mydict.tls=true"
+      - "traefik.http.routers.mydict.tls.certresolver=le"
+      - "traefik.docker.network=web"
+      - "traefik.http.services.mydict.loadbalancer.server.port=80"
+    depends_on:
+      - backend
+    networks:
+      - app_network
+      - web
+
+volumes:
+  mydict_data:
+
+networks:
+  app_network:
+    driver: bridge
+  web:
+    external: true

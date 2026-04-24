@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MyDict</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      font-family: 'Space Grotesk', sans-serif;
+      height: 100%; overflow: hidden;
+    }
+
+    #app {
+      width: 100vw; height: 100vh;
+      transition: background-color 0.5s ease;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ── Scattered sentences (desktop) ─────────────────── */
+    .bubble {
+      position: absolute;
+      max-width: 210px;
+      font-size: 0.78rem;
+      line-height: 1.5;
+      font-weight: 500;
+      color: rgba(0,0,0,0.55);
+      pointer-events: none;
+      animation: bubbleIn 0.4s ease forwards;
+      opacity: 0;
+    }
+    @keyframes bubbleIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Center word ────────────────────────────────────── */
+    #word-area {
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+      z-index: 10;
+      padding: 2rem;
+      max-width: 90vw;
+    }
+
+    #word-main {
+      font-size: clamp(3rem, 12vw, 9rem);
+      font-weight: 800;
+      color: rgba(0,0,0,0.78);
+      letter-spacing: -0.03em;
+      line-height: 1;
+      margin: 0 0 1rem;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+
+    #word-subs {
+      display: flex;
+      gap: 1.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 0.75rem;
+    }
+    .sub-word {
+      font-size: clamp(1rem, 3vw, 1.5rem);
+      font-weight: 700;
+      color: rgba(0,0,0,0.5);
+    }
+    .sub-sep { color: rgba(0,0,0,0.2); font-weight: 400; }
+
+    #word-def {
+      font-size: clamp(0.85rem, 2vw, 1.05rem);
+      color: rgba(0,0,0,0.42);
+      font-style: italic;
+      max-width: 420px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+
+    /* ── Tap hint ───────────────────────────────────────── */
+    #tap-hint {
+      position: fixed;
+      bottom: 1.25rem;
+      left: 50%; transform: translateX(-50%);
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: rgba(0,0,0,0.28);
+      pointer-events: none;
+    }
+
+    /* ── Top bar ────────────────────────────────────────── */
+    #topbar {
+      position: fixed;
+      top: 1rem; left: 1rem; right: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 20;
+    }
+    .topbtn {
+      background: rgba(0,0,0,0.1);
+      border: none; cursor: pointer;
+      border-radius: 999px;
+      padding: 0.4rem 0.85rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      font-family: inherit;
+      color: rgba(0,0,0,0.7);
+      transition: background 0.2s;
+    }
+    .topbtn:hover { background: rgba(0,0,0,0.18); }
+    #word-counter { font-size: 0.78rem; font-weight: 700; color: rgba(0,0,0,0.35); }
+
+    /* ── Settings panel ─────────────────────────────────── */
+    #settings-panel {
+      position: fixed;
+      top: 0; right: 0; bottom: 0;
+      width: min(340px, 100vw);
+      background: rgba(255,255,255,0.97);
+      backdrop-filter: blur(8px);
+      box-shadow: -4px 0 30px rgba(0,0,0,0.12);
+      transform: translateX(100%);
+      transition: transform 0.32s cubic-bezier(.4,0,.2,1);
+      z-index: 100;
+      overflow-y: auto;
+      padding: 1.5rem;
+    }
+    #settings-panel.open { transform: translateX(0); }
+
+    .panel-label {
+      display: block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(0,0,0,0.45);
+      margin-bottom: 0.5rem;
+    }
+    .lang-btn {
+      flex: 1;
+      padding: 0.5rem;
+      border-radius: 0.6rem;
+      border: 2px solid #e5e7eb;
+      font-size: 0.8rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: white;
+      color: #4b5563;
+    }
+    .lang-btn.active { background: black; color: white; border-color: black; }
+    .lang-btn:not(.active):hover { border-color: black; }
+
+    textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 0.6rem;
+      font-family: inherit;
+      font-size: 0.82rem;
+      resize: none;
+      outline: none;
+      transition: border-color 0.15s;
+      color: #111;
+    }
+    textarea:focus { border-color: black; }
+
+    .action-btn {
+      width: 100%;
+      padding: 0.75rem;
+      background: black;
+      color: white;
+      border: none;
+      border-radius: 0.6rem;
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .action-btn:hover:not(:disabled) { background: #222; }
+    .action-btn:disabled { background: #aaa; cursor: not-allowed; }
+
+    /* ── Support modal ──────────────────────────────────── */
+    #support-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    #support-overlay.open { display: flex; }
+    #support-card {
+      background: white;
+      border-radius: 1.25rem;
+      padding: 2rem;
+      max-width: 340px; width: 100%;
+      text-align: center;
+    }
+
+    /* ── Mobile sentences ───────────────────────────────── */
+    #mobile-sentences {
+      display: none;
+      flex-direction: column;
+      gap: 0.6rem;
+      width: 100%;
+      max-width: 420px;
+      max-height: 35vh;
+      overflow-y: auto;
+      padding: 0 1rem 1rem;
+      margin-top: 1.5rem;
+    }
+    .m-sentence {
+      background: rgba(0,0,0,0.07);
+      border-radius: 0.6rem;
+      padding: 0.6rem 0.8rem;
+      font-size: 0.8rem;
+      color: rgba(0,0,0,0.6);
+      line-height: 1.45;
+      font-weight: 500;
+    }
+
+    @media (max-width: 767px) {
+      #app { justify-content: flex-start; padding-top: 5rem; overflow-y: auto; }
+      #mobile-sentences { display: flex; }
+      html, body { overflow: auto; }
+    }
+    @media (min-width: 768px) {
+      #app { overflow: hidden; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- Top bar -->
+  <div id="topbar">
+    <button class="topbtn" id="support-btn">♥ Support</button>
+    <span id="word-counter"></span>
+    <button class="topbtn" id="settings-btn">⚙ Settings</button>
+  </div>
+
+  <!-- Scattered sentences container (desktop only, md+) -->
+  <div id="bubbles-container" class="hidden md:block"></div>
+
+  <!-- Center word area -->
+  <div id="word-area">
+    <div id="word-main">...</div>
+    <div id="word-subs">
+      <span class="sub-word" id="sub-a"></span>
+      <span class="sub-sep">·</span>
+      <span class="sub-word" id="sub-b"></span>
+    </div>
+    <p id="word-def"></p>
+  </div>
+
+  <!-- Mobile sentence list -->
+  <div id="mobile-sentences"></div>
+
+  <div id="tap-hint">tap to continue</div>
+</div>
+
+
+<!-- ── Settings Panel ──────────────────────────────────── -->
+<div id="settings-panel">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+    <span style="font-size:1.3rem;font-weight:800;">Settings</span>
+    <button id="close-settings" style="background:none;border:none;font-size:1.1rem;cursor:pointer;color:#666;">✕</button>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:1.25rem;">
+
+    <div>
+      <span class="panel-label">Primary Language</span>
+      <div style="display:flex;gap:0.5rem;">
+        <button class="lang-btn" id="lang-en" onclick="setPrimary('en')">EN</button>
+        <button class="lang-btn" id="lang-uz" onclick="setPrimary('uz')">UZ</button>
+        <button class="lang-btn" id="lang-kr" onclick="setPrimary('kr')">KR</button>
+      </div>
+    </div>
+
+    <div>
+      <span class="panel-label">Your Context / Bio</span>
+      <textarea id="user-context" rows="5"
+        placeholder="e.g. I am an IT developer. I need words related to coding, databases, and daily office life."></textarea>
+    </div>
+
+    <button class="action-btn" id="generate-btn" onclick="triggerGeneration()">
+      🔄 Update Word Base
+    </button>
+
+    <div id="gen-status" style="font-size:0.8rem;text-align:center;color:#555;min-height:1.2em;"></div>
+
+    <div style="border-top:1px solid #eee;padding-top:1rem;font-size:0.78rem;text-align:center;color:#999;" id="db-stats"></div>
+  </div>
+</div>
+
+
+<!-- ── Support Modal ──────────────────────────────────── -->
+<div id="support-overlay">
+  <div id="support-card">
+    <div style="font-size:1.5rem;font-weight:800;margin-bottom:0.5rem;">Support MyDict ♥</div>
+    <p style="color:#666;font-size:0.85rem;margin-bottom:1.25rem;">
+      Support the project to expand the word database and add new languages.
+    </p>
+    <div style="background:#f8f8f8;border-radius:0.75rem;padding:1rem;text-align:left;margin-bottom:1.25rem;">
+      <div style="font-size:0.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#999;margin-bottom:0.3rem;">Visa</div>
+      <div style="font-family:monospace;font-size:1.2rem;font-weight:700;letter-spacing:0.08em;">__CARD_NUMBER__</div>
+      <div style="font-size:0.85rem;color:#555;margin-top:0.25rem;">__CARD_HOLDER__</div>
+    </div>
+    <button class="action-btn" onclick="toggleSupport()">Close</button>
+  </div>
+</div>
+
+
+<script>
+// ── Constants ────────────────────────────────────────────────────────────────
+const BG_COLORS = [
+  '#FFD6C0','#C9F0FF','#D4F5D4','#F2D9FF','#FFF5C0',
+  '#C0E8FF','#FFDCD5','#C5FAF0','#E8D9FF','#FFFBC0',
+  '#FFE5C0','#D0F0FF','#D8FFD8','#F8D5FF','#FFF0C0',
+  '#C5DBFF','#FFD5E0','#C0F5E8','#EDD9FF','#FAFFC0',
+];
+
+// Absolute-position zones that avoid the center (~40% wide, ~50% tall)
+const ZONES = [
+  { left: '2%',   top: '8%'    },
+  { right: '2%',  top: '8%'    },
+  { left: '1%',   top: '42%'   },
+  { right: '1%',  top: '42%'   },
+  { left: '3%',   bottom: '12%'},
+  { right: '3%',  bottom: '12%'},
+];
+
+// ── State ────────────────────────────────────────────────────────────────────
+let currentId   = null;
+let isAnimating = false;
+
+// ── Boot ─────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  loadSettings();
+  loadStats();
+  fetchWord();
+});
+
+// ── Word fetching ─────────────────────────────────────────────────────────────
+async function fetchWord() {
+  const url = currentId ? `/api/word/random?exclude_id=${currentId}` : '/api/word/random';
+  try {
+    const res  = await fetch(url);
+    const data = await res.json();
+    if (data.error) { renderError(data.message); return; }
+    currentId = data.id;
+    renderWord(data);
+  } catch (e) {
+    renderError('Connection error — is the server running?');
+  }
+}
+
+function nextWord() {
+  if (isAnimating) return;
+  isAnimating = true;
+  const el = document.getElementById('word-main');
+  el.style.opacity  = '0';
+  el.style.transform = 'translateY(-12px)';
+  setTimeout(() => { fetchWord(); isAnimating = false; }, 220);
+}
+
+document.getElementById('word-area').addEventListener('click', nextWord);
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderWord(w) {
+  const lang = localStorage.getItem('primaryLang') || 'en';
+
+  let main, subA, subB;
+  if (lang === 'uz') {
+    main = w.word_uz || w.word_en;
+    subA = 'EN: ' + w.word_en;
+    subB = 'KR: ' + (w.word_kr || '—');
+  } else if (lang === 'kr') {
+    main = w.word_kr || w.word_en;
+    subA = 'EN: ' + w.word_en;
+    subB = 'UZ: ' + (w.word_uz || '—');
+  } else {
+    main = w.word_en;
+    subA = 'UZ: ' + (w.word_uz || '—');
+    subB = 'KR: ' + (w.word_kr || '—');
+  }
+
+  const mainEl = document.getElementById('word-main');
+  mainEl.textContent   = main;
+  mainEl.style.opacity  = '1';
+  mainEl.style.transform = 'translateY(0)';
+  mainEl.style.transition = 'opacity .3s ease, transform .3s ease';
+
+  document.getElementById('sub-a').textContent  = subA;
+  document.getElementById('sub-b').textContent  = subB;
+  document.getElementById('word-def').textContent = w.def_ru || '';
+
+  // Background color
+  const color = BG_COLORS[Math.floor(Math.random() * BG_COLORS.length)];
+  document.getElementById('app').style.backgroundColor = color;
+
+  renderExamples(w.examples || []);
+}
+
+function renderError(msg) {
+  document.getElementById('word-main').textContent = msg;
+  document.getElementById('sub-a').textContent     = '';
+  document.getElementById('sub-b').textContent     = '';
+  document.getElementById('word-def').textContent  = 'Open Settings → Update Word Base';
+  clearBubbles();
+}
+
+// ── Example sentences ─────────────────────────────────────────────────────────
+function clearBubbles() {
+  document.getElementById('bubbles-container').innerHTML = '';
+  document.getElementById('mobile-sentences').innerHTML  = '';
+}
+
+function renderExamples(examples) {
+  clearBubbles();
+
+  // Desktop bubbles
+  const container = document.getElementById('bubbles-container');
+  examples.slice(0, ZONES.length).forEach((text, i) => {
+    const div = document.createElement('div');
+    div.className = 'bubble';
+    Object.assign(div.style, ZONES[i], { maxWidth: '210px', animationDelay: `${i * 60}ms` });
+    div.textContent = text;
+    container.appendChild(div);
+  });
+
+  // Mobile list
+  const mobileList = document.getElementById('mobile-sentences');
+  examples.forEach(text => {
+    const div = document.createElement('div');
+    div.className = 'm-sentence';
+    div.textContent = text;
+    mobileList.appendChild(div);
+  });
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+function loadSettings() {
+  document.getElementById('user-context').value = localStorage.getItem('userContext') || '';
+  updateLangButtons(localStorage.getItem('primaryLang') || 'en');
+}
+
+function setPrimary(lang) {
+  localStorage.setItem('primaryLang', lang);
+  updateLangButtons(lang);
+  if (currentId) { currentId = null; fetchWord(); }
+}
+
+function updateLangButtons(active) {
+  ['en', 'uz', 'kr'].forEach(l => {
+    document.getElementById('lang-' + l).classList.toggle('active', l === active);
+  });
+}
+
+// Settings panel toggle
+document.getElementById('settings-btn').addEventListener('click', () => {
+  document.getElementById('settings-panel').classList.add('open');
+  loadStats();
+});
+document.getElementById('close-settings').addEventListener('click', () => {
+  document.getElementById('settings-panel').classList.remove('open');
+});
+
+// ── AI Generation ─────────────────────────────────────────────────────────────
+async function triggerGeneration() {
+  const ctx    = document.getElementById('user-context').value.trim();
+  const btn    = document.getElementById('generate-btn');
+  const status = document.getElementById('gen-status');
+  localStorage.setItem('userContext', ctx);
+
+  btn.disabled     = true;
+  btn.textContent  = '⏳ Generating...';
+  status.textContent = 'Sending request to Ollama AI... (2–5 min)';
+
+  try {
+    await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ context: ctx }),
+    });
+    pollStatus();
+  } catch (e) {
+    status.textContent = '❌ Could not reach server.';
+    resetGenerateBtn();
+  }
+}
+
+function pollStatus() {
+  const status = document.getElementById('gen-status');
+  const iv = setInterval(async () => {
+    try {
+      const data = await (await fetch('/api/generate/status')).json();
+      if (!data.running) {
+        clearInterval(iv);
+        resetGenerateBtn();
+        status.textContent = data.error ? '❌ ' + data.error : (data.last ? '✅ ' + data.last : '✅ Done');
+        loadStats();
+      } else {
+        status.textContent = '⏳ AI is generating words...';
+      }
+    } catch (e) { /* keep polling */ }
+  }, 5000);
+}
+
+function resetGenerateBtn() {
+  const btn = document.getElementById('generate-btn');
+  btn.disabled    = false;
+  btn.textContent = '🔄 Update Word Base';
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const { word_count } = await (await fetch('/api/stats')).json();
+    document.getElementById('word-counter').textContent = word_count + ' words';
+    document.getElementById('db-stats').textContent     = word_count + ' words in database';
+  } catch (e) { /* silent */ }
+}
+
+// ── Support modal ─────────────────────────────────────────────────────────────
+function toggleSupport() {
+  document.getElementById('support-overlay').classList.toggle('open');
+}
+document.getElementById('support-btn').addEventListener('click', toggleSupport);
+document.getElementById('support-overlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) toggleSupport();
+});
+</script>
+</body>
+</html>
