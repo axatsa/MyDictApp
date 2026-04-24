@@ -347,14 +347,16 @@ const BG_COLORS = [
   '#C5DBFF','#FFD5E0','#C0F5E8','#EDD9FF','#FAFFC0',
 ];
 
-// Absolute-position zones that avoid the center (~40% wide, ~50% tall)
+// 8 zones around the center, desktop only
 const ZONES = [
-  { left: '2%',   top: '8%'    },
-  { right: '2%',  top: '8%'    },
-  { left: '1%',   top: '42%'   },
-  { right: '1%',  top: '42%'   },
-  { left: '3%',   bottom: '12%'},
-  { right: '3%',  bottom: '12%'},
+  { left: '2%',   top: '6%'     },
+  { right: '2%',  top: '6%'     },
+  { left: '1%',   top: '28%'    },
+  { right: '1%',  top: '28%'    },
+  { left: '1%',   top: '54%'    },
+  { right: '1%',  top: '54%'    },
+  { left: '3%',   bottom: '6%'  },
+  { right: '3%',  bottom: '6%'  },
 ];
 
 // ── State ────────────────────────────────────────────────────────────────────
@@ -423,7 +425,9 @@ function renderWord(w) {
   document.getElementById('word-def').textContent = w.def_ru || '';
 
   const transKey = lang === 'uz' ? 'trans_uz' : lang === 'kr' ? 'trans_kr' : 'trans_en';
-  document.getElementById('word-transcription').textContent = w[transKey] || '';
+  // fallback to EN transcription if primary lang has no transcription yet
+  const transcription = w[transKey] || w['trans_en'] || '';
+  document.getElementById('word-transcription').textContent = transcription;
 
   // Background color
   const color = BG_COLORS[Math.floor(Math.random() * BG_COLORS.length)];

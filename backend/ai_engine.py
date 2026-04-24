@@ -26,9 +26,9 @@ async def _request_batch(context: str, count: int, offset_hint: str = "") -> lis
         f'  "trans_en": IPA phonetic transcription of the English word, e.g. /ˈbɛntʃmɑːrk/\n'
         f'  "trans_uz": Latin pronunciation guide for the Uzbek word, e.g. [al-go-RÍTM]\n'
         f'  "trans_kr": Revised Romanization of the Korean word, e.g. benchimakeu\n'
-        f'  "ex": array of 3 example sentences in English\n'
-        f'  "ex_uz": array of 3 example sentences in Uzbek\n'
-        f'  "ex_kr": array of 3 example sentences in Korean (Hangul)\n'
+        f'  "ex": array of exactly 8 English sentences — vary complexity: 2 simple (A2), 3 intermediate (B1-B2), 3 advanced (C1)\n'
+        f'  "ex_uz": array of exactly 8 Uzbek sentences matching the same complexity order\n'
+        f'  "ex_kr": array of exactly 8 Korean sentences (Hangul) matching the same complexity order\n'
         f'  "topic": one of: IT, Daily, Business, Science, Art, Travel\n'
         "Rules:\n"
         "  - 80% of words must relate to the user context\n"
