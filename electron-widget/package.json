@@ -1,0 +1,33 @@
+{
+  "name": "mydict-widget",
+  "version": "1.0.0",
+  "description": "Beautiful macOS & Windows widget for MyDict",
+  "main": "main.js",
+  "homepage": "./",
+  "scripts": {
+    "start": "electron .",
+    "build:mac": "electron-builder --mac --publish never",
+    "build:win": "electron-builder --win --publish never",
+    "build:all": "electron-builder -mw --publish never"
+  },
+  "build": {
+    "appId": "com.mydict.widget",
+    "productName": "MyDict Widget",
+    "directories": {
+      "buildResources": "assets",
+      "output": "dist"
+    },
+    "mac": {
+      "target": ["dmg", "zip"],
+      "category": "public.app-category.education"
+    },
+    "win": {
+      "target": ["nsis", "portable"],
+      "certificateFile": null
+    }
+  },
+  "devDependencies": {
+    "electron": "^32.0.0",
+    "electron-builder": "^25.0.0"
+  }
+}
