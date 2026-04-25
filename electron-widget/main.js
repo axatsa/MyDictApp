@@ -1,9 +1,12 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, nativeImage } = require('electron');
 const path = require('path');
 
 let mainWindow;
 
 function createWindow() {
+  const iconPath = path.join(__dirname, 'assets/icon.png');
+  const image = nativeImage.createFromPath(iconPath);
+
   mainWindow = new BrowserWindow({
     width: 420,
     height: 520,
@@ -14,9 +17,13 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
     },
-    icon: path.join(__dirname, 'assets/icon.jpeg'),
+    icon: image,
     show: false,
   });
+  
+  if (process.platform === 'darwin') {
+    app.dock.setIcon(image);
+  }
 
   mainWindow.loadFile('widget.html');
   mainWindow.show();
