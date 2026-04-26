@@ -5,7 +5,7 @@ ARG CARD_HOLDER="Support MyDict"
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY index.html /usr/share/nginx/html/index.html
-COPY favicon.jpeg /usr/share/nginx/html/favicon.jpeg
+COPY favicon.png /usr/share/nginx/html/favicon.png
 
 # Inject card info from build args into the HTML
 RUN sed -i "s|__CARD_NUMBER__|${CARD_NUMBER}|g" /usr/share/nginx/html/index.html && \
