@@ -7,7 +7,7 @@ import re
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 # Fallback chain: try the configured model first, then cheaper stable alternatives
 _PRIMARY_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
-_FALLBACK_MODELS = ["gemini-2.0-flash", "gemini-1.5-flash"]
+_FALLBACK_MODELS = ["gemini-2.0-flash", "gemini-2.0-flash-lite"]
 
 def _gemini_url(model: str) -> str:
     return f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
