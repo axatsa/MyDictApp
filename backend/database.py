@@ -177,6 +177,15 @@ def get_word_count() -> int:
     return count
 
 
+def get_existing_words(limit: int = 400) -> list[str]:
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT word_en FROM dictionary ORDER BY id DESC LIMIT ?", (limit,)
+    ).fetchall()
+    conn.close()
+    return [r["word_en"] for r in rows]
+
+
 def insert_words(words: list) -> int:
     conn = get_conn()
     inserted = 0

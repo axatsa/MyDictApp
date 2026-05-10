@@ -41,7 +41,7 @@ async def _request_batch(context: str, count: int, offset_hint: str = "") -> lis
     prompt = (
         f"Act as a polyglot linguist. Generate a JSON array of exactly {count} unique vocabulary objects.\n"
         f"User Context: {context}\n"
-        + (f"Avoid words already generated: {offset_hint}\n" if offset_hint else "")
+        + (f"Do NOT include any of these words (already in database): {offset_hint}\n" if offset_hint else "")
         + "Each object must have these exact keys:\n"
         f'  "en": English word (level B2-C1)\n'
         f'  "uz": Uzbek translation\n'
@@ -103,14 +103,17 @@ def _safe_parse(text: str) -> list:
         return json.loads(truncated)
 
 
-async def generate_batch(context: str = "") -> list:
+async def generate_batch(context: str = "", existing_words: list[str] | None = None) -> list:
     ctx = context.strip() or "general vocabulary for everyday life"
 
-    # First batch
-    first = await _request_batch(ctx, BATCH_SIZE)
+    # Build the "avoid these" hint from existing DB words + inter-batch dedup
+    existing_hint = ", ".join((existing_words or [])[:300])
 
-    # Second batch — hint to avoid duplicates
-    used = ", ".join(w.get("en", "") for w in first[:10])
-    second = await _request_batch(ctx, BATCH_SIZE, offset_hint=used)
+    first = await _request_batch(ctx, BATCH_SIZE, offset_hint=existing_hint)
+
+    # Second batch: avoid existing DB words + words just generated in first batch
+    new_in_first = ", ".join(w.get("en", "") for w in first)
+    combined_hint = ", ".join(filter(None, [existing_hint, new_in_first]))
+    second = await _request_batch(ctx, BATCH_SIZE, offset_hint=combined_hint)
 
     return first + second

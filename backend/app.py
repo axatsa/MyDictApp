@@ -3,7 +3,7 @@ from fastapi import FastAPI, BackgroundTasks, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from database import init_db, get_random_word, get_word_count, insert_words, get_topics
+from database import init_db, get_random_word, get_word_count, insert_words, get_topics, get_existing_words
 from ai_engine import generate_batch
 
 generation_status: dict = {"running": False, "last": None, "error": None}
@@ -67,7 +67,8 @@ async def _run_generation(context: str):
     generation_status["running"] = True
     generation_status["error"] = None
     try:
-        words = await generate_batch(context)
+        existing = get_existing_words()
+        words = await generate_batch(context, existing_words=existing)
         inserted = insert_words(words)
         generation_status["last"] = f"Added {inserted} new words (total: {get_word_count()})"
     except Exception as e:
