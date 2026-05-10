@@ -1,16 +1,40 @@
+import asyncio
 import httpx
 import json
 import os
 import re
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL   = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
-GEMINI_URL     = (
-    "https://generativelanguage.googleapis.com/v1beta/models/"
-    f"{GEMINI_MODEL}:generateContent"
-)
+# Fallback chain: try the configured model first, then cheaper stable alternatives
+_PRIMARY_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
+_FALLBACK_MODELS = ["gemini-2.0-flash", "gemini-1.5-flash"]
+
+def _gemini_url(model: str) -> str:
+    return f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+
+GEMINI_URL = _gemini_url(_PRIMARY_MODEL)
 
 BATCH_SIZE = 50  # 100 words split into 2 requests — avoids JSON truncation
+
+
+async def _post_with_retry(url: str, payload: dict, retries: int = 3) -> dict:
+    """POST to Gemini with exponential backoff on 503/429, then try fallback models."""
+    models_to_try = [None] + _FALLBACK_MODELS  # None = use the url as-is
+    for model in models_to_try:
+        target_url = _gemini_url(model) if model else url
+        for attempt in range(retries):
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                resp = await client.post(target_url, params={"key": GEMINI_API_KEY}, json=payload)
+            if resp.status_code in (429, 503):
+                if attempt < retries - 1:
+                    await asyncio.sleep(2 ** attempt)
+                    continue
+                break  # exhausted retries for this model, try next
+            resp.raise_for_status()
+            return resp.json()
+    # All models and retries exhausted
+    resp.raise_for_status()
+    return resp.json()
 
 
 async def _request_batch(context: str, count: int, offset_hint: str = "") -> list:
@@ -49,14 +73,7 @@ async def _request_batch(context: str, count: int, offset_hint: str = "") -> lis
         },
     }
 
-    async with httpx.AsyncClient(timeout=120.0) as client:
-        resp = await client.post(
-            GEMINI_URL,
-            params={"key": GEMINI_API_KEY},
-            json=payload,
-        )
-        resp.raise_for_status()
-        body = resp.json()
+    body = await _post_with_retry(GEMINI_URL, payload)
 
     raw = body["candidates"][0]["content"]["parts"][0]["text"]
     raw = re.sub(r"^```(?:json)?\s*", "", raw.strip())
